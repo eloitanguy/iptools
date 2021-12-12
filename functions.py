@@ -1,5 +1,6 @@
 import numpy as np
 from numpy.fft import fft2, fftshift, ifft2, ifftshift
+import numpy.matlib as npm
 
 
 def fftzoom(u, z):
@@ -27,4 +28,30 @@ def fftzoom(u, z):
             f[0, :] = 0
 
     return np.real(ifft2(ifftshift(f)))
+
+
+def perdecomp(u):
+    """
+    Decomposes u into its periodic and smooth components
+    :param u: 2D array (image)
+    :return: two 2D arrays: periodic and smooth components
+    """
+    if u.dtype != 'float64':
+        w = u.astype(np.float)
+        return perdecomp(w)
+
+    ny, nx = u.shape
+    X, Y = np.arange(nx), np.arange(ny)
+    v = np.zeros((ny, nx))
+    v[0, :] = u[0, :] - u[-1, :]
+    v[-1, :] = -v[0, :]
+    v[:, 0] = v[:, 0] + u[:, 0] - u[:, -1]
+    v[:, -1] = v[:, -1] - u[:, 0] + u[:, -1]
+    fx = npm.repmat(np.cos(2 * np.pi * X.reshape((1, nx))/nx), ny, 1)
+    fy = npm.repmat(np.cos(2 * np.pi * Y.reshape((ny, 1))/ny), 1, nx)
+    fx[0, 0] = 0.  # avoiding /0
+    f = fft2(v) * .5 / (2 - fx - fy)
+    s = np.real(ifft2(f))
+    p = u - s
+    return p, s
 
