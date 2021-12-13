@@ -55,3 +55,26 @@ def perdecomp(u):
     p = u - s
     return p, s
 
+
+def ffttrans(u, tx, ty):
+    """
+    Sub-pixel translation of image u by (tx, ty) using Shannon interpolation
+    :param u: 2D array (image)
+    :param tx: translation in x (second coordinate of u): lines
+    :param ty: translation in y (first coordinate of u): columns
+    :return: v, the translated image
+    """
+    if u.dtype != 'float64':
+        w = u.astype(np.float)
+        return ffttrans(w, tx, ty)
+
+    ny, nx = u.shape
+    my, mx = ny // 2, nx // 2
+    # fourier-domain arguments p,q in "[-n/2,n/2]"
+    p = np.arange(mx, mx + nx) % nx - mx
+    p = p.astype(np.complex)
+    q = np.arange(my, my + ny) % ny - my
+    q = q.astype(np.complex)
+    fx = np.exp(-2 * 1j * np.pi * tx / nx * p).reshape((1, nx))
+    fy = np.exp(-2 * 1j * np.pi * ty / ny * q).reshape((ny, 1))
+    return np.real(ifft2(fft2(u) * (fy @ fx)))
